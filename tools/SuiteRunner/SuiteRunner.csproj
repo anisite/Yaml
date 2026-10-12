@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\System.Text.Yaml\System.Text.Yaml.csproj" />
+    <Compile Include="..\..\tests\System.Text.Yaml.Tests\EventDump.cs" Link="EventDump.cs" />
+  </ItemGroup>
+</Project>
