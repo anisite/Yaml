@@ -40,6 +40,7 @@ public sealed class YamlSerializerOptions
     private YamlDuplicateKeyHandling _duplicateKeys = YamlDuplicateKeyHandling.Error;
     private YamlUntypedMappingType _untypedMappingType;
     private bool _hexByteArrays;
+    private YamlDocumentCache? _documentCache;
     private int _maxDepth;
     private long _maxNodes = 10_000_000;
     private JsonSerializerOptions? _jsonOptions;
@@ -95,6 +96,17 @@ public sealed class YamlSerializerOptions
     {
         get => _hexByteArrays;
         set { Check(); _hexByteArrays = value; }
+    }
+
+    /// <summary>
+    /// Optional cache of parsed documents (default <c>null</c>: none). A hit skips the parsing, which dominates the cost, and the
+    /// object is still bound afresh on every call, so callers never share mutable state. Applies to the <see cref="string"/> and
+    /// <see cref="ReadOnlyMemory{T}"/> overloads, not to streams.
+    /// </summary>
+    public YamlDocumentCache? DocumentCache
+    {
+        get => _documentCache;
+        set { Check(); _documentCache = value; }
     }
 
     /// <summary>Maximum nesting depth (0 = default, 256).</summary>
