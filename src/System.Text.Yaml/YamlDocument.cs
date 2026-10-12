@@ -171,6 +171,21 @@ public sealed partial class YamlDocument : IDisposable
 
     internal ReadOnlySpan<byte> DataSpan => _data.Span;
 
+    /// <summary>
+    /// Offset in the input of the first scalar of the subtree at <paramref name="row"/> whose text is still in the input
+    /// (scalars rewritten into the pool, such as folded or escaped ones, have no input position), or -1.
+    /// </summary>
+    internal int FirstLocation(int row)
+    {
+        int last = row + Math.Max(1, _rows![row].Rows);
+        for (int i = row; i < last && i < _rowCount; i++)
+        {
+            ref DbRow r = ref _rows![i];
+            if ((r.Info & RowInfo.TypeMask) == RowInfo.Scalar && (r.Info & RowInfo.InPool) == 0) return r.Location;
+        }
+        return -1;
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Row construction (used by the builder)
     // ---------------------------------------------------------------------------------------------

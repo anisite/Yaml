@@ -71,7 +71,7 @@ conforme à la spec), `Schema` (`Core` par défaut, `Json`, `Failsafe`, `Yaml11`
 ## Choix et limites connues
 
 * Entrée entièrement en mémoire (pas de lecture partielle façon `Utf8JsonReader` / `ReadOnlySequence`).
-* Pas de writer ni de sérialiseur : parseur seulement.
+* Pas de writer : lecture seulement. Le désérialiseur (`YamlSerializer`) est décrit plus bas.
 * Seuls LF, CR et CRLF sont des fins de ligne (YAML 1.2) ; NEL / LS / PS sont du contenu.
 * Le lecteur n'impose pas qu'un alias pointe vers une ancre définie ; le DOM le fait, et rejette aussi les alias
   récursifs (ancre encore ouverte).
@@ -80,6 +80,37 @@ conforme à la spec), `Schema` (`Core` par défaut, `Json`, `Failsafe`, `Yaml11`
 * Une dernière ligne d'un block scalar composée uniquement d'espaces, en fin de flux, compte comme une ligne
   (c'est ce qu'attend la suite officielle).
 * `Utf8YamlReader` est une struct mutable : à passer par `ref`, ne pas la copier pendant la lecture.
+
+## Désérialisation vers des objets (`YamlSerializer`)
+
+```csharp
+using System.Text.Yaml.Serialization;
+
+var options = new YamlSerializerOptions
+{
+    PropertyNamingPolicy = YamlNamingPolicy.CamelCase,   // comme CamelCaseNamingConvention de YamlDotNet
+    MergeKeys = false,                                   // `<<` traité comme une clé ordinaire
+    DuplicateKeys = YamlDuplicateKeyHandling.Allow,      // la dernière clé gagne
+};
+MaConfig? cfg = YamlSerializer.Deserialize<MaConfig>(File.ReadAllBytes("config.yml"), options);
+```
+
+Comme `System.Text.Json` : les options sont créées une fois et réutilisées (thread-safe, métadonnées en cache, en lecture seule après
+le premier usage), les attributs `System.Text.Json` (`[JsonPropertyName]`, `[JsonIgnore]`, `[JsonConverter]`) s'appliquent et la génération
+de code est supportée (`options.CreateJsonSerializerOptions()` pour le contexte, puis les surcharges `JsonTypeInfo<T>`).
+
+**Fonctionnement** : le YAML est parsé par `YamlDocument`, écrit en JSON UTF-8 dans un tampon prêté par `ArrayPool` (un `Utf8JsonWriter`
+réutilisé par thread), puis lié par `JsonSerializer`. **Tous les scalaires sont écrits comme chaînes JSON** (`01` reste `"01"` pour un membre
+`string`) ; des convertisseurs YAML lisent les types valeur : booléens `true/yes/on/y` (insensibles à la casse), entiers `0x1F` `0b101` `010`
+(octal) `1_000` `+5`, flottants `.inf` `.5`, dates, énumérations (nom insensible à la casse ou nombre), `Guid`. Un scalaire nul
+(`~`, `null`, vide) donne `default`. Un membre `object` reçoit `string`, `List<object>` et `Dictionary<object, object>`
+(`UntypedMappingType = StringKeys` pour `Dictionary<string, object>`), comme YamlDotNet ; `Dictionary<object, TValue>` est supporté.
+
+* `TypeInfoModifiers` : crochet équivalent à `DefaultJsonTypeInfoResolver.Modifiers` (renommer ou retirer des membres sans toucher au modèle).
+* `HexByteArrays` : `byte[]` lu depuis une chaîne hexadécimale. `TagMappings` : un mapping tagué instancie un type donné (là où la cible est `object`).
+* Les erreurs de liaison sont des `YamlException` avec le chemin du membre et la ligne/colonne YAML.
+* Limites : une clé de mapping qui est une collection (`? [a, b]`) est liée sous sa description (`Mapping[1]`, `Sequence[2]`) ; les tags
+  sur des scalaires ne sont pas interprétés ; un tag mappé n'est appliqué que sur une cible `object`.
 
 ## Performances (mesurées, BenchmarkDotNet, .NET 10, **Windows 11 ARM64**)
 

@@ -28,7 +28,7 @@ public readonly struct YamlEntry
 /// A lightweight, read-only view of a node in a <see cref="YamlDocument"/> (the counterpart of <c>JsonElement</c>).
 /// Aliases are transparent: an element obtained through an alias behaves exactly like the anchored node.
 /// </summary>
-public readonly struct YamlElement
+public readonly partial struct YamlElement
 {
     private readonly YamlDocument _doc;
     private readonly int _idx;
