@@ -30,6 +30,10 @@ public static class Program
             Console.WriteLine(sink);
             return 0;
         }
+        if (args.Length > 1 && args[0] == "--compare")
+        {
+            return Compare.Run(args[1], args.Contains("-v"));
+        }
         if (args.Length > 0 && args[0] == "--lines")
         {
             return LargeFile(args.Length > 1 ? int.Parse(args[1]) : 50_000);
