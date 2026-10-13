@@ -29,7 +29,8 @@ public static class YamlSerializer
     {
         options ??= YamlSerializerOptions.Default;
         JsonSerializerOptions json = options.JsonOptions;
-        using YamlDocument doc = YamlDocument.Parse(yaml, options.DocumentOptions);
+        using var holder = new DocumentHolder(yaml, options);
+        YamlDocument doc = holder.Document;
         return Bind<T>(doc.RootElement, options, json, null);
     }
 
@@ -40,7 +41,8 @@ public static class YamlSerializer
     {
         options ??= YamlSerializerOptions.Default;
         JsonSerializerOptions json = options.JsonOptions;
-        using YamlDocument doc = YamlDocument.Parse(utf8Yaml, options.DocumentOptions);
+        using var holder = new DocumentHolder(utf8Yaml, options);
+        YamlDocument doc = holder.Document;
         return Bind<T>(doc.RootElement, options, json, null);
     }
 
@@ -72,7 +74,8 @@ public static class YamlSerializer
         ArgumentNullException.ThrowIfNull(returnType);
         options ??= YamlSerializerOptions.Default;
         JsonSerializerOptions json = options.JsonOptions;
-        using YamlDocument doc = YamlDocument.Parse(yaml, options.DocumentOptions);
+        using var holder = new DocumentHolder(yaml, options);
+        YamlDocument doc = holder.Document;
         return BindObject(doc.RootElement, returnType, options, json);
     }
 
@@ -86,7 +89,8 @@ public static class YamlSerializer
         ArgumentNullException.ThrowIfNull(typeInfo);
         options ??= YamlSerializerOptions.Default;
         _ = options.JsonOptions;
-        using YamlDocument doc = YamlDocument.Parse(yaml, options.DocumentOptions);
+        using var holder = new DocumentHolder(yaml, options);
+        YamlDocument doc = holder.Document;
         return Bind(doc.RootElement, options, typeInfo);
     }
 
@@ -96,7 +100,8 @@ public static class YamlSerializer
         ArgumentNullException.ThrowIfNull(typeInfo);
         options ??= YamlSerializerOptions.Default;
         _ = options.JsonOptions;
-        using YamlDocument doc = YamlDocument.Parse(utf8Yaml, options.DocumentOptions);
+        using var holder = new DocumentHolder(utf8Yaml, options);
+        YamlDocument doc = holder.Document;
         return Bind(doc.RootElement, options, typeInfo);
     }
 
@@ -201,6 +206,56 @@ public static class YamlSerializer
 
         int offset = path is null ? -1 : root.FindOffset(path);
         return offset >= 0 ? YamlException.At(root.Document.DataSpan, offset, reason) : new YamlException(reason);
+    }
+
+
+    /// <summary>Owns a parsed document, or borrows the shared one from the <see cref="YamlDocumentCache"/> (then disposing does nothing).</summary>
+    private readonly struct DocumentHolder : IDisposable
+    {
+        private readonly bool _owned;
+
+        public DocumentHolder(string yaml, YamlSerializerOptions options)
+        {
+            YamlDocumentCache? cache = options.DocumentCache;
+            if (cache is null)
+            {
+                Document = YamlDocument.Parse(yaml, options.DocumentOptions);
+                _owned = true;
+                return;
+            }
+
+            byte[] rented = ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetByteCount(yaml)); // exact size: the worst case (3 bytes per char) would exceed the pool's largest bucket
+            try
+            {
+                int n = Encoding.UTF8.GetBytes(yaml, rented);
+                Document = cache.GetOrParse(rented.AsMemory(0, n), options.DocumentOptions);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+        }
+
+        public DocumentHolder(ReadOnlyMemory<byte> utf8Yaml, YamlSerializerOptions options)
+        {
+            YamlDocumentCache? cache = options.DocumentCache;
+            if (cache is null)
+            {
+                Document = YamlDocument.Parse(utf8Yaml, options.DocumentOptions);
+                _owned = true;
+            }
+            else
+            {
+                Document = cache.GetOrParse(utf8Yaml, options.DocumentOptions);
+            }
+        }
+
+        public YamlDocument Document { get; }
+
+        public void Dispose()
+        {
+            if (_owned) Document.Dispose();
+        }
     }
 
     /// <summary>A growable <see cref="IBufferWriter{T}"/> over <see cref="ArrayPool{T}"/> buffers.</summary>

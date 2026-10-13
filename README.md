@@ -21,7 +21,7 @@ YamlD is independent of YamlDotNet; it only shares the YAML language with it.
 dotnet add package YamlD
 ```
 
-Target framework: **net10.0**. Current version: **0.0.1** (first preview, the API may still change).
+Target framework: **net10.0**. Current version: **0.0.2** (preview, the API may still change).
 
 ## Usage
 
@@ -124,6 +124,10 @@ like YamlDotNet; `Dictionary<object, TValue>` is supported.
   touching the model).
 * `HexByteArrays`: `byte[]` read from a hexadecimal string. `TagMappings`: a tagged mapping instantiates a given type
   (where the target is `object`).
+* `DocumentCache`: an optional, bounded, thread-safe `YamlDocumentCache` of parsed documents, keyed by the exact YAML
+  text and the parsing options (hits are verified byte for byte). A hit skips the parsing; every call still binds its own
+  fresh object, so nothing mutable is shared. It applies to the `string` and `ReadOnlyMemory<byte>` overloads, not to
+  streams, and is off by default.
 * Binding errors are `YamlException`s carrying the member path and the YAML line/column.
 * Limits: a mapping key that is a collection (`? [a, b]`) is bound under its description (`Mapping[1]`,
   `Sequence[2]`); tags on scalars are not interpreted; a mapped tag is only applied on an `object` target.
@@ -158,6 +162,22 @@ Memory allocated per pass on the same datasets:
 | config | **1.45 ms** | 13.19 ms (x9.1) | 3.6 KB -> 12.4 MB |
 | k8s (`ParseAll`, 400 documents) | **2.34 ms** | 11.12 ms (x4.8) | 360 KB -> 11.4 MB |
 | records | **10.5 ms** | 103.2 ms (x9.8) | 64 KB -> 94.2 MB |
+
+**Typed deserialization** (`YamlSerializer.Deserialize<List<Record>>`; each record has nested objects, lists, a
+bool, a double and a null; YamlDotNet is configured with `CamelCaseNamingConvention`). "With cache" is the
+`DocumentCache` option (below) when the same text is read again:
+
+| Input | YamlDotNet | YamlD | YamlD with cache |
+|---|--:|--:|--:|
+| 1 record (13 lines) | 23.1 µs | **3.5 µs** (x6.6) | **1.9 µs** (x12.1) |
+| 100 records (1,300 lines) | 2.26 ms | **328 µs** (x6.9) | **172 µs** (x13.2) |
+| 3,846 records (50,000 lines) | 96.0 ms | **13.4 ms** (x7.2) | **7.4 ms** (x12.9) |
+
+Memory allocated per call: 33.8 KB / 2.5 MB / 98.3 MB (YamlDotNet), 1.5 KB / 91 KB / 3.9 MB (YamlD), 1.4 KB / 91 KB /
+3.6 MB (YamlD with cache). A cache hit still hashes the input, compares it byte for byte and binds a fresh object;
+only the parsing is skipped, so the gain is about 2x here. A cache miss costs the same as no cache plus the insertion.
+YamlDotNet is given an already decoded `string` and YamlD the UTF-8 bytes. VYaml's typed deserializer is not compared
+(it requires source-generated types).
 
 Duplicate-key detection used to cost about 40% of the DOM time on `records`; it was optimized after this
 measurement (lengths are compared before bytes), so the DOM is faster today than these figures

@@ -110,6 +110,10 @@ réutilisé par thread), puis lié par `JsonSerializer`. **Tous les scalaires so
 
 * `TypeInfoModifiers` : crochet équivalent à `DefaultJsonTypeInfoResolver.Modifiers` (renommer ou retirer des membres sans toucher au modèle).
 * `HexByteArrays` : `byte[]` lu depuis une chaîne hexadécimale. `TagMappings` : un mapping tagué instancie un type donné (là où la cible est `object`).
+* `DocumentCache` : un `YamlDocumentCache` optionnel, borné et thread-safe, de documents parsés, indexé par le texte YAML exact
+  et les options de parsing (les succès sont vérifiés octet par octet). Un succès évite le parsing ; chaque appel lie quand même
+  son propre objet neuf, donc rien de mutable n'est partagé. Il s'applique aux surcharges `string` et `ReadOnlyMemory<byte>`,
+  pas aux flux, et il est désactivé par défaut.
 * Les erreurs de liaison sont des `YamlException` avec le chemin du membre et la ligne/colonne YAML.
 * Limites : une clé de mapping qui est une collection (`? [a, b]`) est liée sous sa description (`Mapping[1]`, `Sequence[2]`) ; les tags
   sur des scalaires ne sont pas interprétés ; un tag mappé n'est appliqué que sur une cible `object`.
@@ -144,6 +148,22 @@ Mémoire allouée par passe sur ces mêmes jeux :
 | config | **1,45 ms** | 13,19 ms (×9,1) | 3,6 Ko → 12,4 Mo |
 | k8s (`ParseAll`, 400 documents) | **2,34 ms** | 11,12 ms (×4,8) | 360 Ko → 11,4 Mo |
 | records | **10,5 ms** | 103,2 ms (×9,8) | 64 Ko → 94,2 Mo |
+
+**Désérialisation typée** (`YamlSerializer.Deserialize<List<Record>>` ; chaque enregistrement contient des objets imbriqués,
+des listes, un booléen, un double et un null ; YamlDotNet est configuré avec `CamelCaseNamingConvention`). « Avec cache » est
+l'option `DocumentCache` (ci-dessus) quand le même texte est relu :
+
+| Entrée | YamlDotNet | YamlD | YamlD avec cache |
+|---|--:|--:|--:|
+| 1 enregistrement (13 lignes) | 23,1 µs | **3,5 µs** (×6,6) | **1,9 µs** (×12,1) |
+| 100 enregistrements (1 300 lignes) | 2,26 ms | **328 µs** (×6,9) | **172 µs** (×13,2) |
+| 3 846 enregistrements (50 000 lignes) | 96,0 ms | **13,4 ms** (×7,2) | **7,4 ms** (×12,9) |
+
+Mémoire allouée par appel : 33,8 Ko / 2,5 Mo / 98,3 Mo (YamlDotNet), 1,5 Ko / 91 Ko / 3,9 Mo (YamlD), 1,4 Ko / 91 Ko / 3,6 Mo
+(YamlD avec cache). Un succès du cache hache quand même l'entrée, la compare octet par octet et lie un objet neuf : seul le
+parsing est évité, d'où un gain d'environ 2× ici. Un échec du cache coûte autant que sans cache, plus l'insertion. YamlDotNet
+reçoit une `string` déjà décodée et YamlD les octets UTF-8. Le désérialiseur typé de VYaml n'est pas comparé (il exige des
+types générés par source generator).
 
 La vérification des doublons coûtait environ 40 % du DOM sur `records` ; elle a été optimisée après cette mesure
 (comparaison des longueurs avant les octets), donc le DOM est aujourd'hui plus rapide que ces chiffres
