@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Text.Yaml;
+using YamlD;
 
 /// <summary>Long-running mutation fuzzer: `SuiteRunner fuzz &lt;suite-dir&gt; &lt;mutations-per-input&gt; &lt;seed&gt;`.</summary>
 internal static class Fuzz

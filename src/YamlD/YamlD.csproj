@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>YamlD</RootNamespace>
+    <AssemblyName>YamlD</AssemblyName>
+    <IsAotCompatible>true</IsAotCompatible>
+    <Deterministic>true</Deterministic>
+    <TieredPGO>true</TieredPGO>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- NuGet package -->
+  <PropertyGroup>
+    <PackageId>YamlD</PackageId>
+    <Version>0.0.1</Version>
+    <Authors>Infologique.net</Authors>
+    <Company>Infologique.net</Company>
+    <Product>YamlD</Product>
+    <Copyright>Copyright (c) 2026 Infologique.net</Copyright>
+    <Description>Native, allocation-free YAML 1.2.2 parser for .NET 10 with YAML 1.1 merge keys (&lt;&lt;), modelled on System.Text.Json: a pull reader over UTF-8 spans (Utf8YamlReader), a pooled read-only DOM (YamlDocument/YamlElement) and a deserializer to objects (YamlSerializer). Passes the whole official yaml-test-suite.</Description>
+    <PackageTags>yaml;yaml-parser;yaml-1.2;yaml-deserializer;merge-keys;utf8;span;high-performance;configuration</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <DebugType>embedded</DebugType>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\NOTICE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="YamlD.Tests" />
+    <InternalsVisibleTo Include="YamlD.Benchmarks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Text" />
+  </ItemGroup>
+
+</Project>

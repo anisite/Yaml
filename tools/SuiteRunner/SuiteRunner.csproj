@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -7,7 +8,11 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\System.Text.Yaml\System.Text.Yaml.csproj" />
-    <Compile Include="..\..\tests\System.Text.Yaml.Tests\EventDump.cs" Link="EventDump.cs" />
+    <ProjectReference Include="..\..\src\YamlD\YamlD.csproj" />
+    <Compile Include="..\..\tests\YamlD.Tests\EventDump.cs" Link="EventDump.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="System.Text" />
+  </ItemGroup>
+
 </Project>

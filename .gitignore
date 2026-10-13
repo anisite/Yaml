@@ -4,3 +4,4 @@ BenchmarkDotNet.Artifacts/
 *.user
 .vs/
 TestResults/
+artifacts/

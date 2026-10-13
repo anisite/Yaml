@@ -1,12 +1,12 @@
 <Solution>
   <Folder Name="/bench/">
-    <Project Path="bench/System.Text.Yaml.Benchmarks/System.Text.Yaml.Benchmarks.csproj" />
+    <Project Path="bench/YamlD.Benchmarks/YamlD.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/System.Text.Yaml/System.Text.Yaml.csproj" />
+    <Project Path="src/YamlD/YamlD.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/System.Text.Yaml.Tests/System.Text.Yaml.Tests.csproj" />
+    <Project Path="tests/YamlD.Tests/YamlD.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/SuiteRunner/SuiteRunner.csproj" />

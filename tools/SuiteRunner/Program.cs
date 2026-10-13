@@ -1,6 +1,6 @@
 using System.Text;
-using System.Text.Yaml;
-using System.Text.Yaml.Tests;
+using YamlD;
+using YamlD.Tests;
 
 // usage: SuiteRunner <suite-dir> [-v] [id-prefix]   |   SuiteRunner fuzz <suite-dir> <mutations> <seed>
 if (args.Length > 0 && args[0] == "fuzz")
